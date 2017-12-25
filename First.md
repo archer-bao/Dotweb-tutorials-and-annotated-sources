@@ -199,4 +199,12 @@ func (app *DotWeb) ListenAndServe(addr string) error
 ```
 app.ListenAndServe("127.0.0.1:8888")
 ```
-这样启动后台后，后台会绑定 `loopback（环回）`，只能接受来自 `127.0.0.1/24` 的数据，而其他的类似以太网络的数据都会被拒绝。
+这样启动后台后，后台会绑定 `loopback（环回）`，只能接受来自 `127.0.0.1/24` 的数据，而其他的类似以太网络的数据都会被拒绝。我们将这样的代码进行编译后运行，可以看到第一次访问失败，而第二次访问成功了：
+
+![first_dotweb](http://p1iazy1u3.bkt.clouddn.com/dotweb1-3.png)
+
+
+通过查看进程网络状态，可以看到后台服务只接受来自 `127.0.0.1:8888` 的数据：
+
+![first_dotweb](http://p1iazy1u3.bkt.clouddn.com/dotweb1-4.png)
+
