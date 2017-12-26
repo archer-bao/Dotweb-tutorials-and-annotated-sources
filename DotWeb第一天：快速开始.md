@@ -28,7 +28,7 @@ DotWeb 版本查看：
 创建文件 main.go
 
 ```golang
-package main
+1. package main
 
 import (
 	"github.com/devfeel/dotweb"
