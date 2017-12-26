@@ -27,6 +27,14 @@ DotWeb 版本查看：
 **第一步：**
 创建文件 main.go
 
+<pre>
+<code>line 1</code>
+<code>line 2</code>
+<code>line 3</code>
+<code>line 4</code>
+<code>line 5</code>
+</pre>
+
 ```golang
 package main
 
