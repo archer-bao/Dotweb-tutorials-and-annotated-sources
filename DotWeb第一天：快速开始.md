@@ -26,7 +26,7 @@ DotWeb 版本查看：
 
 **第一步：**
 创建文件 main.go
-```
+```golang
 package main
 
 import (
