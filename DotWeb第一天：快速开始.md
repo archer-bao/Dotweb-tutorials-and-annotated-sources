@@ -29,24 +29,24 @@ DotWeb 版本查看：
 
 ```golang
 1. package main
-
-import (
-	"github.com/devfeel/dotweb"
-)
-
-func main() {
-	//init DotApp
-	app := dotweb.New()
-
-	//set route
-	app.HttpServer.GET("/index", func(ctx dotweb.Context) error {
-		_, err := ctx.WriteString("welcome to my first web!")
-		return err
-	})
-
-	//begin server
-	app.StartServer(8888)
-}
+2. 
+3. import (
+4. 	"github.com/devfeel/dotweb"
+5. )
+6. 
+7. func main() {
+8. 	//init DotApp
+9. 	app := dotweb.New()
+10. 
+11. 	//set route
+12. 	app.HttpServer.GET("/index", func(ctx dotweb.Context) error {
+13. 		_, err := ctx.WriteString("welcome to my first web!")
+14. 		return err
+15. 	})
+16. 
+17. 	//begin server
+18. 	app.StartServer(8888)
+19. }
 ```
 
 **第二步：** 
