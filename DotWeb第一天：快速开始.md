@@ -17,7 +17,7 @@ DotWeb是一个快速开发 Go 应用的 HTTP 框架，是一个开源的项目�
 > * Go 1.9.2
 > * DotWeb 1.3.7
 
-DotWeb 版本查看：
+*DotWeb 版本查看* ：
 > DotWeb源码目录下有个 version.md 文件，通过该文件可以查看到当前框架版本，通常最顶部的为当前版本。
 
 -----
@@ -205,7 +205,8 @@ app.StartServer(8888)
 ```
 这一行代码有两个关键点：端口和服务不间断运行。   
 
-__1. 端口：__
+__1. 端口：__   
+
 `StartServer()` 的参数指定了DotWeb后台监听的端口 `8888` 并启动后台服务，但没有指定本地IP，默认是接受所有网络的连接，比如 `loopback（环回）` 。如果我们想只接受本地 `以太网网络` 或者 `loopback（环回）`，那么可以使用另外一个方法 `ListenAndServe()`，该函数原型如下：
 
 ```golang
@@ -226,7 +227,8 @@ app.ListenAndServe("127.0.0.1:8888")
 
 ![first_dotweb](http://p1iazy1u3.bkt.clouddn.com/dotweb1-4.png)   
 
-__2. 服务不间断运行：__
+__2. 服务不间断运行：__   
+
 所有的编程语言代码都是从上到下顺序执行的，上一句执行完毕后执行紧接着的下一句，在最前面 `main.go` 文件中，紧随第 `18行` 后的代码是 `main()函数` 的结束点，按照正常逻辑来说，该函数应该在执行完第 `18行` 后返回并结束，但实际运行之后发现并没有结束，而是阻塞在了此处。我们同样通过阅读 `StartServer()` 的源码来看看具体细节。它的原型定义在 `github.com/devfeel/dotweb/dotweb.go` 文件中，如下：
 
 ```golang
@@ -268,10 +270,24 @@ func (app *DotWeb) ListenAndServe(addr string) error {
 err := app.HttpServer.ListenAndServe(addr)
 ```
 
-这个追寻的过程略为漫长，经历过的源码文件路径和对应函数如下：
-github.com/devfeel/dotweb/server.go __==>__ ```golang func (server *HttpServer) ListenAndServe(addr string) error ```
-net/http/server.go __==>__ ```golang func (srv *Server) ListenAndServe() error ```
-net/http/server.go __==>__ ```golang func (srv *Server) Serve(l net.Listener) error ```
+这个追寻的过程略为漫长，经历过的源码文件路径和对应函数如下：  
+
+github.com/devfeel/dotweb/server.go __==>__ 
+```golang 
+func (server *HttpServer) ListenAndServe(addr string) error 
+```
+   
+net/http/server.go __==>__ 
+```golang 
+func (srv *Server) ListenAndServe() error 
+```
+   
+net/http/server.go __==>__ 
+```golang 
+func (srv *Server) Serve(l net.Listener) error 
+```
+
+
 上面的 `net/http/server.go` 则是golang自带的库。
 
 `Serve()` 的源码关键部分如下：
@@ -311,7 +327,7 @@ func (srv *Server) Serve(l net.Listener) error {
 }
 ```
 
-从上面的代码可以看到有一个 `for死循环`，该循环永远执行，除非由于错误打破返回，这样后台服务看起来像是阻塞在了此处，从而能够使得__服务不间断运行__。
+从上面的代码可以看到有一个 `for死循环`，该循环永远执行，除非由于错误打破返回，这样后台服务看起来像是阻塞在了此处，从而能够使得 __服务不间断运行__ 。
 另外，从侧面反应了 `DotWeb` 的HTTP相关是使用了golang自带的 `net/http` 库。
 
 到这里，快速入门和相应的源码阅读就结束了，后面将会继续学习探讨。
