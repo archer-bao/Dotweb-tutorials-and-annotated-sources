@@ -25,7 +25,7 @@ DotWeb 版本查看：
 ### **快速开始** ：
 
 **第一步：**
-创建文件 main.go
+创建文件 `main.go`
 
 ```golang
 1. package main
@@ -203,7 +203,10 @@ welcome to my first web!
 ```golang
 app.StartServer(8888)
 ```
-&emsp;&emsp;这一行代码指定了DotWeb后台监听的端口 `8888` 并启动后台服务，但没有指定本地IP，默认是接受所有网络的连接，比如 `loopback（环回）` 。如果我们想只接受本地 `以太网网络` 或者 `loopback（环回）`，那么可以使用另外一个方法 `ListenAndServe()`，该函数原型如下：
+这一行代码有两个关键点：端口和服务不间断运行。   
+
+__1. 端口：__
+`StartServer()` 的参数指定了DotWeb后台监听的端口 `8888` 并启动后台服务，但没有指定本地IP，默认是接受所有网络的连接，比如 `loopback（环回）` 。如果我们想只接受本地 `以太网网络` 或者 `loopback（环回）`，那么可以使用另外一个方法 `ListenAndServe()`，该函数原型如下：
 
 ```golang
 func (app *DotWeb) ListenAndServe(addr string) error
@@ -221,5 +224,94 @@ app.ListenAndServe("127.0.0.1:8888")
 
 通过查看进程网络状态，可以看到后台服务只接受来自 `127.0.0.1:8888` 的数据：
 
-![first_dotweb](http://p1iazy1u3.bkt.clouddn.com/dotweb1-4.png)
+![first_dotweb](http://p1iazy1u3.bkt.clouddn.com/dotweb1-4.png)   
 
+__2. 服务不间断运行：__
+所有的编程语言代码都是从上到下顺序执行的，上一句执行完毕后执行紧接着的下一句，在最前面 `main.go` 文件中，紧随第 `18行` 后的代码是 `main()函数` 的结束点，按照正常逻辑来说，该函数应该在执行完第 `18行` 后返回并结束，但实际运行之后发现并没有结束，而是阻塞在了此处。我们同样通过阅读 `StartServer()` 的源码来看看具体细节。它的原型定义在 `github.com/devfeel/dotweb/dotweb.go` 文件中，如下：
+
+```golang
+func (app *DotWeb) StartServer(httpPort int) error {
+	addr := ":" + strconv.Itoa(httpPort)
+	return app.ListenAndServe(addr)
+}
+```
+
+上面的代码中并没有阻塞，继续顺着下面的代码追寻：
+
+```golang
+return app.ListenAndServe(addr)
+```
+
+`ListenAndServe()` 的源码同样定义在 `github.com/devfeel/dotweb/dotweb.go` 文件中，如下：
+
+```golang
+func (app *DotWeb) ListenAndServe(addr string) error {
+	app.initAppConfig()
+	app.initRegisterMiddleware()
+	app.initRegisterRoute()
+	app.initRegisterGroup()
+	app.initServerEnvironment()
+	app.initInnerRouter()
+
+	if app.HttpServer.ServerConfig().EnabledTLS {
+		err := app.HttpServer.ListenAndServeTLS(addr, app.HttpServer.ServerConfig().TLSCertFile, app.HttpServer.ServerConfig().TLSKeyFile)
+		return err
+	}
+	err := app.HttpServer.ListenAndServe(addr)
+	return err
+}
+```
+
+在上面的代码中，我们可以看到`6个 app.init*()` 的函数调用，它们做了相关服务初始化的操作。但上面的代码中依然没有阻塞，继续顺着下面的代码追寻：
+
+```golang
+err := app.HttpServer.ListenAndServe(addr)
+```
+
+这个追寻的过程略为漫长，经历过的源码文件路径和对应函数如下：
+github.com/devfeel/dotweb/server.go __==>__ ```golang func (server *HttpServer) ListenAndServe(addr string) error ```
+net/http/server.go __==>__ ```golang func (srv *Server) ListenAndServe() error ```
+net/http/server.go __==>__ ```golang func (srv *Server) Serve(l net.Listener) error ```
+上面的 `net/http/server.go` 则是golang自带的库。
+
+`Serve()` 的源码关键部分如下：
+
+```golang
+func (srv *Server) Serve(l net.Listener) error {
+	... // 省略
+	
+	for {
+		rw, e := l.Accept()
+		if e != nil {
+			select {
+			case <-srv.getDoneChan():
+				return ErrServerClosed
+			default:
+			}
+			if ne, ok := e.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				srv.logf("http: Accept error: %v; retrying in %v", e, tempDelay)
+				time.Sleep(tempDelay)
+				continue
+			}
+			return e
+		}
+		tempDelay = 0
+		c := srv.newConn(rw)
+		c.setState(c.rwc, StateNew) // before Serve can return
+		go c.serve(ctx)
+	}
+}
+```
+
+从上面的代码可以看到有一个 `for死循环`，该循环永远执行，除非由于错误打破返回，这样后台服务看起来像是阻塞在了此处，从而能够使得__服务不间断运行__。
+另外，从侧面反应了 `DotWeb` 的HTTP相关是使用了golang自带的 `net/http` 库。
+
+到这里，快速入门和相应的源码阅读就结束了，后面将会继续学习探讨。
